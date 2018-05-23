@@ -15,9 +15,24 @@
 
 struct termios orig_termios;
 
+/*** declarations ***/
+
+void die(const char*);
+void disableRawMode();
+void enableRawMode();
+char editorReadKey();
+
+void editorClearScreen();
+void editorDrawRows();
+void editorRefreshScreen();
+
+void editorProcesssKeypress();
+
 /*** terminal ***/
 
 void die(const char* s) {
+    editorClearScreen();
+
     perror(s);
     exit(1);
 }
@@ -59,6 +74,26 @@ char editorReadKey() {
     return c;
 }
 
+/*** output ***/
+
+void editorClearScreen() {
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
+}
+
+void editorDrawRows() {
+    int y;
+    for(y = 0; y < 24; ++y) {
+        write(STDOUT_FILENO, "~\r\n", 3);
+    }
+}
+
+void editorRefreshScreen() {
+    editorClearScreen();
+    editorDrawRows();
+    write(STDOUT_FILENO, "\x1b[H", 3);
+}
+
 /*** input ***/
 
 void editorProcessKeypress() {
@@ -66,6 +101,7 @@ void editorProcessKeypress() {
 
     switch(c) {
         case CTRL_KEY('q'):
+            editorClearScreen();
             exit(0);
             break;
     }
@@ -78,6 +114,7 @@ int main() {
 
     char c;
     while(1) {
+        editorRefreshScreen();
         editorProcessKeypress();
     };
     return 0;
