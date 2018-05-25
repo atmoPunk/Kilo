@@ -15,7 +15,17 @@
 
 #define KILO_VERSION "0.0.1"
 
-enum editorKey { ARROW_LEFT = 1000, ARROW_RIGHT, ARROW_UP, ARROW_DOWN };
+enum editorKey {
+  ARROW_LEFT = 1000,
+  ARROW_RIGHT,
+  ARROW_UP,
+  ARROW_DOWN,
+  DEL_KEY,
+  HOME_KEY,
+  END_KEY,
+  PAGE_UP,
+  PAGE_DOWN
+};
 
 /*** data ***/
 
@@ -102,18 +112,64 @@ int editorReadKey() {
     }
 
     if (seq[0] == '[') {
+      if (seq[1] >= '0' && seq[1] <= '9') {
+        if (read(STDIN_FILENO, &seq[2], 1) != 1) {
+          return '\x1b';
+        }
+        if (seq[2] == '~') {
+          switch (seq[1]) {
+          case '1':
+            return HOME_KEY;
+            break;
+          case '3':
+            return DEL_KEY;
+            break;
+          case '4':
+            return END_KEY;
+            break;
+          case '5':
+            return PAGE_UP;
+            break;
+          case '6':
+            return PAGE_DOWN;
+            break;
+          case '7':
+            return HOME_KEY;
+            break;
+          case '8':
+            return END_KEY;
+            break;
+          }
+        }
+      } else {
+        switch (seq[1]) {
+        case 'A':
+          return ARROW_UP;
+          break;
+        case 'B':
+          return ARROW_DOWN;
+          break;
+        case 'C':
+          return ARROW_RIGHT;
+          break;
+        case 'D':
+          return ARROW_LEFT;
+          break;
+        case 'H':
+          return HOME_KEY;
+          break;
+        case 'F':
+          return END_KEY;
+          break;
+        }
+      }
+    } else if (seq[0] == 'O') {
       switch (seq[1]) {
-      case 'A':
-        return ARROW_UP;
+      case 'H':
+        return HOME_KEY;
         break;
-      case 'B':
-        return ARROW_DOWN;
-        break;
-      case 'C':
-        return ARROW_RIGHT;
-        break;
-      case 'D':
-        return ARROW_LEFT;
+      case 'F':
+        return END_KEY;
         break;
       }
     }
@@ -249,16 +305,24 @@ void editorRefreshScreen() {
 void editorMoveCursor(int key) {
   switch (key) {
   case ARROW_LEFT:
-    E.cx--;
+    if (E.cx != 0) {
+      E.cx--;
+    }
     break;
   case ARROW_RIGHT:
-    E.cx++;
+    if (E.cx != E.screencols - 1) {
+      E.cx++;
+    }
     break;
   case ARROW_UP:
-    E.cy--;
+    if (E.cy != 0) {
+      E.cy--;
+    }
     break;
   case ARROW_DOWN:
-    E.cy++;
+    if (E.cy != E.screenrows - 1) {
+      E.cy++;
+    }
   }
 }
 
@@ -270,6 +334,21 @@ void editorProcessKeypress() {
     editorClearScreen();
     exit(0);
     break;
+
+  case HOME_KEY:
+    E.cx = 0;
+    break;
+  case END_KEY:
+    E.cx = E.screencols - 1;
+    break;
+
+  case PAGE_UP:
+  case PAGE_DOWN: {
+    int times = E.screenrows;
+    while (times--) {
+      editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+    }
+  } break;
 
   case ARROW_UP:
   case ARROW_DOWN:
