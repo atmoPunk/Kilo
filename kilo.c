@@ -23,6 +23,11 @@ struct editorConfig {
 
 struct editorConfig E;
 
+struct abuf {
+    char* b;
+    int len;
+};
+
 /*** declarations ***/
 
 void die(const char*);
@@ -33,7 +38,7 @@ int getCursorPosition(int*, int*);
 int getWindowSize(int*, int*);
 
 void editorClearScreen();
-void editorDrawRows();
+void editorDrawRows(struct abuf*);
 void editorRefreshScreen();
 
 void editorProcesssKeypress();
@@ -87,7 +92,7 @@ char editorReadKey() {
 int getCursorPosition(int* rows, int* cols) {
     char buf[32];
     unsigned int i = 0;
-    
+
     if(write(STDOUT_FILENO, "\x1b[6n", 4) != 4) {
         return -1;
     }
@@ -130,11 +135,6 @@ int getWindowSize(int* rows, int* cols) {
 
 /*** append buffer ***/
 
-struct abuf {
-    char* b;
-    int len;
-};
-
 #define ABUF_INIT {NULL, 0}
 
 void abAppend(struct abuf* ab, const char* s, int len) {
@@ -160,21 +160,29 @@ void editorClearScreen() {
     write(STDOUT_FILENO, "\x1b[H", 3);
 }
 
-void editorDrawRows() {
+void editorDrawRows(struct abuf* ab) {
     int y;
     for(y = 0; y < E.screenrows; y++) {
-        write(STDOUT_FILENO, "~", 1);
+        abAppend(ab, "~", 1);
 
         if(y < E.screenrows - 1) {
-            write(STDOUT_FILENO, "\r\n", 2);
+            abAppend(ab, "\r\n", 2);
         }
     }
 }
 
 void editorRefreshScreen() {
-    editorClearScreen();
-    editorDrawRows();
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    struct abuf ab = ABUF_INIT;
+
+    abAppend(&ab, "\x1b[2J", 4);
+    abAppend(&ab, "\x1b[H", 3);
+
+    editorDrawRows(&ab);
+
+    abAppend(&ab, "\x1b[H", 3);
+
+    write(STDOUT_FILENO, ab.b, ab.len);
+    abFree(&ab);
 }
 
 /*** input ***/
