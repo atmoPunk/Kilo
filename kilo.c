@@ -789,6 +789,14 @@ void editorProcessKeypress() {
     exit(0);
     break;
 
+  case CTRL_KEY('r'):
+    if (E.filename != NULL) {
+      free(E.filename);
+      E.filename = NULL;
+    }
+    editorSave();
+    break;
+
   case CTRL_KEY('s'):
     editorSave();
     break;
@@ -877,7 +885,8 @@ int main(int argc, char *argv[]) {
     editorOpen(argv[1]);
   }
 
-  editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
+  editorSetStatusMessage(
+      "HELP: Ctrl-S = save | Ctrl-R = save as | Ctrl-Q = quit");
 
   char c;
   while (1) {
